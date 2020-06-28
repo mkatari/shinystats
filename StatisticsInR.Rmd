@@ -1,0 +1,408 @@
+---
+title: "Statistics in R"
+author: "Manpreet S. Katari"
+date: "6/28/2020"
+output: 
+  slidy_presentation:
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Outline
+
+- Introduction to R and tools that enable research.
+  - RMarkdown - reproducible research
+  - RShiny - web application to share your data and results. No JS required.
+- Experimenting with statistics
+  - simulations
+  - bootstrapping
+  - shuffling
+
+
+## Why R?
+
+- R is a free software environment for statistical computing and graphics.
+- It is similar to the S language and environment which was developed at Bell Laboratories (formerly AT&T, now Lucent Technologies) by John Chambers.
+- One of R's strengths is the ease with which well-designed publication-quality plots can be produced, including mathematical symbols and formulae where needed.
+- Great care has been taken over the defaults for the minor design choices in graphics, but the user retains full control. 
+
+source(http://www.r-project.org/about.html)
+
+## R environment
+
+- an effective data handling and storage facility
+- a suite of operators for calculations on arrays, in particular matrices
+- a large, coherent, integrated collection of intermediate tools for data analysis
+- graphical facilities for data analysis and display either directly at the computer or on hardcopy
+- well developed, simple and effective programming language (called “S”) which includes conditionals, loops, user defined recursive functions and input and output facilities.
+
+## Reproducible Research
+
+- Markdowns and Jupyter Notebooks
+  - Allow you to save your code and your results in one document.
+  - This allows someone to be able to reproduce your results.
+  - Easy to remember and use syntax
+
+- RShiny
+  - Allow users to change parameters and immediately see results.
+  - Let the researcher be in control of their data.
+  - Can run locally or be setup on a server.
+
+## Experimenting with Statistics
+
+- Traditional statistical methods require that the data follow some known distribution such as *normal*, *poisson*, *geom*, *negative binomial*, etc, when in reality this may not be true.
+- For example the *Student T-test* assumes that the data is normally distributed.
+- Such distributions can also be very sensitive to outliers that can skew the model trying to fit the data.
+- If we have enough data points, we can empirically determine our statistical significance.
+
+## Case study 1 - Probability of getting an Ace
+
+- Let's try to determine the number of times we will **fail** before we get an ace. Let's make a deck of cards and let's pretend Ace will be the value 1.
+
+- The card that is pulled from the deck is put back so this random sampling with replacement.
+
+- To do this simulation I have created a function whose arguments are:
+  - carddeck  
+  - the number of times it should draw the card
+
+- It then returns the number of times it had to draw a card before getting an Ace. 
+- If after set number of draws it doesn't get the Ace, then it will return the number of times it tried.
+
+---
+
+```{r echo=T}
+carddeck = rep(c(1:13), each=4)
+select_Ace = function(carddeck, num_draws) {
+  # function will count the number of times it takes to get a 1
+    card_selected = sample(carddeck, 
+                           num_draws, 
+                           replace = T)
+    if ( length(which(card_selected==1)) > 0) {
+      Ace_selected = min(which(card_selected == 1))
+      return(Ace_selected-1)
+    } else {
+      return(num_draws)
+    }
+}
+
+failures = numeric()
+set.seed(123)
+
+for (i in 1:10000) {
+  failures[i]=select_Ace(carddeck, num_draws = 100)
+}
+```
+
+--- 
+
+Check out [R for Data Science](https://r4ds.had.co.nz) for some great tutorials on ggplot.
+
+```{r echo=T}
+library(ggplot2)
+
+ggplot()+
+  geom_histogram(mapping=aes(x=failures),
+            bins=500,
+                 fill="blue")
+```
+
+## The empirical p-value
+
+To simply get our p-values, we can count the number of times we got an Ace within the first 20 draws.
+```{r echo=T}
+sum(failures<21)/10000
+```
+
+The theoretical p-value using the built-in R functions.
+
+```{r echo=T}
+pgeom(20,1/13)
+
+```
+
+## What about without replacement?
+
+Let's pretend we are playing poker, what is the probability that one of my cards is an Ace?
+
+```{r echo=T}
+poker_cards = function(carddeck, num_draws) {
+    card_selected = sample(carddeck, 
+                           num_draws, 
+                           replace = F)
+    return ( sum(card_selected==1)) 
+}
+  
+```
+
+```{r echo=T}
+successes = numeric()
+set.seed(123)
+
+for (i in 1:10000) {
+  successes[i]=poker_cards(carddeck, num_draws = 5)
+}
+
+```
+
+---
+
+```{r echo=T}
+ggplot()+
+  geom_bar(mapping=aes(x=successes),
+                 fill="blue")
+table(successes)
+```
+
+## The empirical p-value
+
+Count the number of times we had an ace more than once.
+
+```{r echo=T}
+sum(successes>0)/10000
+```
+
+Let's count them
+
+```{r echo=T}
+poker_hands = combn(carddeck, 5)
+dim(poker_hands)
+
+poker_hands_logic = poker_hands==1
+poker_hands_ace = apply(poker_hands_logic, 2, sum)
+sum(poker_hands_ace > 0) / ncol(poker_hands)
+
+```
+## Case Study 2: Marble Selection
+
+- Let's pretend we have 10,000 marbles in a bag
+- 500 of them are blue
+- 9,500 are red 
+
+### We want to calculate the probability that if we select 300 marbles, we will get 30 or more that are blue. 
+
+```{r echo=T}
+
+marbles=c(rep("B", times=500),rep("R", times=9500))
+
+```
+
+---
+
+One way to do it is to take the function we went over earlier and change it to do the simulation for us.
+
+```{r echo=T}
+select_Blue = function(marbles, num_draws, selection) {
+  #function will take all the marbles and draw num_draws marbles.
+      marbles_selected = sample(marbles, 
+                           num_draws, 
+                           replace = F)
+
+    blue_selected = length(which(marbles_selected==selection))
+      return(blue_selected)
+}
+```
+
+```{r echo=T}
+NumBlues = numeric()
+set.seed(123)
+
+for (i in 1:10000) {
+  NumBlues[i]=select_Blue(marbles, num_draws = 300, "B")
+}
+
+sum(NumBlues >= 30) / 10000
+
+```
+
+```{r echo=T}
+# if we look closely at the documentation of the phyper, we see that 
+# when lower.tail = F, then it calculates P(X > x) so if we want 30 and above we need to put
+# 29.
+phyper(29, 500, 9500, 300, lower.tail = F)
+
+```
+
+---
+
+```{r echo=T}
+ggplot()+
+  geom_bar(mapping=aes(x=NumBlues),
+                 bins=500,
+                 fill="blue")
+```
+
+## Case study 3 - Placebo vs Drug
+
+- The example has been borrowed from *Statistics is Easy*
+- Here will discuss a simple case study where the a drug has been provided to 10 random patients ( or test subjects ) and a placebo pill, as a control, was given to 10 other random patients. 
+
+### Question: Is there a significant difference between the control subject and the those that were given the drug?
+
+## The Population
+
+Let's first look at all values as a population. 
+
+
+```{r echo=T}
+
+Placebo = c(54,51,58,44,55,52,42,47,58,46)
+Drug = c(54,73,53,70,73,68,52,65,65,60)
+
+```
+
+```{r echo=T}
+library(reshape2)
+datamelt = melt(cbind(Placebo,Drug), 
+                varnames = c("id","treatment"))
+datamelt
+```
+
+---
+
+```{r echo=T}
+
+ggplot(datamelt) + geom_histogram(mapping=aes(x=value, 
+                                              fill=treatment), 
+                                  bins=5)
+
+```
+
+## Sampling the population - Bootstrapping
+
+- Let's simulate randomly obtaining 10 measurements from the different samples. 
+- If we do this 10,000 times, we will see that the distribution of the average of the samples gives a normal distribution. 
+- In fact, the standard deviation of this distribution is called the Standard Error (SE). 
+
+```{r echo=T}
+D_placebo=numeric()
+D_drug= numeric()
+set.seed(123)
+
+n=10
+
+for (i in 1:10000) {
+  D_placebo[i] = mean(Placebo[sample(1:length(Placebo), n, replace=T)])
+  D_drug[i] = mean(Drug[sample(1:length(Drug), n, replace=T)])
+  }
+
+D_datamelt = melt(cbind(D_placebo,D_drug), 
+                varnames = c("id","treatment"))
+```
+
+---
+
+```{r echo=T}
+
+ggplot(D_datamelt) + geom_histogram(mapping=aes(x=value, fill=treatment), bins=50)
+         
+```
+
+## Standard error is sensitive to number of samples.
+
+Notice that the SE changes when we select a different number of samples ( 5 instead of 10). You will notice that the SE increases as the number of samples (n) increases. This relationship can be described as:
+
+$$SE_{\bar{x}} = {\frac{\sigma}{\sqrt{n}}}$$
+
+```{r echo=T}
+D_placebo=numeric()
+D_drug= numeric()
+set.seed(123)
+
+n=5
+for (i in 1:10000) {
+  D_placebo[i] = mean(Placebo[sample(1:length(Placebo), n, replace=T)])
+  D_drug[i] = mean(Drug[sample(1:length(Drug), n, replace=T)])
+  }
+
+D_datamelt = melt(cbind(D_placebo,D_drug), 
+                varnames = c("id","treatment"))
+
+```
+
+---
+
+
+```{r echo=T}
+
+ggplot(D_datamelt) +
+  geom_histogram(mapping=aes(x=value,
+                             fill=treatment),
+                 bins=50)
+```
+
+## Difference of means is also normally distributed
+
+Now let's start to consider that Placebo and Drug are two separate populations. If we randomly sampled from the two different populations, we can determine ( with 95% confidence ) what is the actual difference in the means of the populations.
+
+Below I will sample 10 values form both populations and simply take their difference.
+
+```{r ehco=T}
+
+Diff_sample = numeric()
+set.seed(123)
+
+n=10
+for (i in 1:10000) {
+  Diff_sample[i] = mean(Placebo[sample(1:length(Placebo),n,replace=T)])-
+    mean(Drug[sample(1:length(Drug), n, replace = T)])
+}
+```
+
+---
+
+```{r echo=T}
+
+ggplot() +
+  geom_histogram(mapping=aes(x=Diff_sample),
+                 fill="blue", bins=50) +
+  geom_vline(mapping=aes(xintercept=0),
+             col="red")
+
+```
+
+## Shuffling for significance
+
+If the samples are truly random, then it shouldn't matter which data values are associated with Placebo or Drug. To get our null hypothesis, let's shuffle the labels on the datapoints 1000 times and look at the difference of the means, like we did above, but for shuffled data.
+
+```{r echo=T}
+Diff_shuffle_sample = numeric()
+set.seed(123)
+
+datameltshuffle = datamelt
+n=10
+for (i in 1:10000) {
+  datameltshuffle$value = sample(datamelt$value,
+                                   nrow(datamelt),replace=F)
+
+  Diff_shuffle_sample[i] = diff(tapply(datameltshuffle$value,
+                                    datameltshuffle$treatment,
+                                       mean))
+}
+```
+
+---
+
+```{r echo=T}
+ggplot() +
+  geom_histogram(mapping=aes(x=Diff_suffle_sample),
+                 fill="blue", bins=50) +
+  geom_vline(mapping=aes(xintercept=mean(Placebo)-mean(Drug)),
+             col="red")
+
+```
+
+## The results
+
+```{r echo=T}
+
+sum(Diff_shuffle_sample <= (mean(Placebo)-mean(Drug)))/10000
+
+```
+
+```{r echo=T}
+#confirmation using the t.test() function.
+t.test(Placebo, Drug, var.equal = T)
+```

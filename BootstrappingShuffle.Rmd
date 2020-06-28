@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+
 ## Number of failures before getting an Ace
 
 Let's try to determine the number of times we  will fail before we get an ace. Let's make a deck of cards and let's pretend Ace will be the value 1.
@@ -59,7 +60,7 @@ Check out [R for Data Science](https://r4ds.had.co.nz) for some great tutorials 
 library(ggplot2)
 
 ggplot()+
-  geom_bar(mapping=aes(x=failures),
+  geom_histogram(mapping=aes(x=failures),
                  bins=500,
                  fill="blue")
 
@@ -121,10 +122,14 @@ The empirical p-value
 sum(successes>0)/10000
 ```
 
-The theoretical p-value
+Let's count them
 
 ```{r}
-pbinom(0,5,1/13, lower.tail = F)
+poker_hands = combn(carddeck, 5)
+dim(poker_hands)
+poker_hands_logic = poker_hands==1
+poker_hands_ace = apply(poker_hands_logic, 2, sum)
+sum(poker_hands_ace > 0) / ncol(poker_hands)
 
 ```
 
@@ -143,7 +148,7 @@ marbles=c(rep("B", times=500),rep("R", times=9500))
 
 ### Perform the simulation
 
-One way to do it, as suggested by Kathy, is to take the function we went over earlier and change it to do the simulation for us.
+One way to do it is to take the function we went over earlier and change it to do the simulation for us.
 
 ```{r}
 select_Blue = function(marbles, num_draws, selection) {
@@ -185,7 +190,7 @@ sum(marble_selected>=20)/10000
 
 ```{r}
 ggplot()+
-  geom_bar(mapping=aes(x=marble_selected),
+  geom_bar(mapping=aes(x=NumBlues),
                  bins=500,
                  fill="blue")
 ```
@@ -295,7 +300,6 @@ Now let's start to consider that Placebo and Drug are two separate populations. 
 Below I will sample 5 values form both populations and simply take their difference.
 
 ```{r}
-
 Diff_sample = numeric()
 set.seed(123)
 
@@ -307,23 +311,19 @@ for (i in 1:10000) {
 ```
 
 ```{r}
-
 ggplot() +
   geom_histogram(mapping=aes(x=Diff_sample),
                  fill="blue") +
   geom_vline(mapping=aes(xintercept=0),
              col="red")
-#hist(Diff_sample)
-#abline(v=0, col="red")
 
 ```
+
 #Shuffling for significance
 
 If the samples are truly random, then it shouldn't matter which data values are associated with Placebo or Drug. To get our null hypothesis, let's shuffle the labels on the datapoints 1000 times and look at the difference of the means, like we did above, but for shuffled data.
 
 ```{r}
-
-
 Diff_suffle_sample = numeric()
 set.seed(123)
 
@@ -340,12 +340,6 @@ Diff_suffle_sample[i] = diff(tapply(datameltshuffle$value,
 ```
 
 ```{r}
-
-#hist(Diff_suffle_sample)
-#abline(v=0, col="red")
-#abline(v=mean(Placebo)-mean(Drug), col="green")
-
-
 ggplot() +
   geom_histogram(mapping=aes(x=Diff_suffle_sample),
                  fill="blue") +
