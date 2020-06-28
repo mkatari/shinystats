@@ -74,12 +74,15 @@ source(http://www.r-project.org/about.html)
 ---
 
 ```{r echo=T}
+# create a vector by repeating 1-13 4 times.
 carddeck = rep(c(1:13), each=4)
+
 select_Ace = function(carddeck, num_draws) {
   # function will count the number of times it takes to get a 1
-    card_selected = sample(carddeck, 
-                           num_draws, 
-                           replace = T)
+  # it will try the number of times defined by num_draws
+    card_selected = sample(carddeck, # what to sample from
+                           num_draws, # how many to draw
+                           replace = T) # can value be selected more than once
     if ( length(which(card_selected==1)) > 0) {
       Ace_selected = min(which(card_selected == 1))
       return(Ace_selected-1)
@@ -88,7 +91,10 @@ select_Ace = function(carddeck, num_draws) {
     }
 }
 
+#initialize a numeric vector to store results from loop
 failures = numeric()
+
+#use this to make results reproducible, not needed for real life use
 set.seed(123)
 
 for (i in 1:10000) {
@@ -105,22 +111,29 @@ library(ggplot2)
 
 ggplot()+
   geom_histogram(mapping=aes(x=failures),
-            bins=500,
-                 fill="blue")
+            bins=500, fill="blue")
 ```
 
 ## The empirical p-value
 
 To simply get our p-values, we can count the number of times we got an Ace within the first 20 draws.
 ```{r echo=T}
+# A logical vector can be converted to 1 = True and 0 = Fales.
+# So this is counting the number of times it is T
 sum(failures<21)/10000
 ```
 
 The theoretical p-value using the built-in R functions.
+There are 4 different helper functions for every normal distribution.
+  - *p* - distribution function
+  - *q* - quantile function
+  - *r* - random number generator
+  - *d* - density function
+  
+See [R documentatin](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/Geometric) for more information.
 
 ```{r echo=T}
 pgeom(20,1/13)
-
 ```
 
 ## What about without replacement?
@@ -149,6 +162,7 @@ for (i in 1:10000) {
 
 ---
 
+Frequency table
 ```{r echo=T}
 ggplot()+
   geom_bar(mapping=aes(x=successes),
@@ -167,10 +181,17 @@ sum(successes>0)/10000
 Let's count them
 
 ```{r echo=T}
+# combn creates all possible combinations.
 poker_hands = combn(carddeck, 5)
+
+# see how many different combinations are possible.
+# Each combination is in a different column
 dim(poker_hands)
 
 poker_hands_logic = poker_hands==1
+
+# apply function allows you to apply a specific function to the matrix
+# 2 means to each column.
 poker_hands_ace = apply(poker_hands_logic, 2, sum)
 sum(poker_hands_ace > 0) / ncol(poker_hands)
 
@@ -195,13 +216,15 @@ One way to do it is to take the function we went over earlier and change it to d
 
 ```{r echo=T}
 select_Blue = function(marbles, num_draws, selection) {
-  #function will take all the marbles and draw num_draws marbles.
+  # function will take all the marbles and draw num_draws marbles.
+  # you can also pick what to select for.
       marbles_selected = sample(marbles, 
                            num_draws, 
                            replace = F)
-
+    # which tells you where the match is taking place.
+    # so you can simply add the number of positions it found a match.
     blue_selected = length(which(marbles_selected==selection))
-      return(blue_selected)
+    return(blue_selected)
 }
 ```
 
@@ -226,6 +249,10 @@ phyper(29, 500, 9500, 300, lower.tail = F)
 ```
 
 ---
+
+## Expected value
+
+Note that the peak of the simulation is the number you would expect by chance. 500/10000 is 0.5% and 0.5% of 300 is 15.
 
 ```{r echo=T}
 ggplot()+
@@ -253,9 +280,14 @@ Drug = c(54,73,53,70,73,68,52,65,65,60)
 
 ```
 
+We can use the *reshape2* library to format our **wide** format to **long** format.
+
 ```{r echo=T}
 library(reshape2)
-datamelt = melt(cbind(Placebo,Drug), 
+datamatrix = cbind(Placebo,Drug)
+head(datamatrix)
+
+datamelt = melt(datamatrix,
                 varnames = c("id","treatment"))
 datamelt
 ```
@@ -263,11 +295,9 @@ datamelt
 ---
 
 ```{r echo=T}
-
 ggplot(datamelt) + geom_histogram(mapping=aes(x=value, 
                                               fill=treatment), 
                                   bins=5)
-
 ```
 
 ## Sampling the population - Bootstrapping
@@ -295,9 +325,8 @@ D_datamelt = melt(cbind(D_placebo,D_drug),
 ---
 
 ```{r echo=T}
-
-ggplot(D_datamelt) + geom_histogram(mapping=aes(x=value, fill=treatment), bins=50)
-         
+ggplot(D_datamelt) + 
+  geom_histogram(mapping=aes(x=value, fill=treatment), bins=50)
 ```
 
 ## Standard error is sensitive to number of samples.
@@ -326,11 +355,8 @@ D_datamelt = melt(cbind(D_placebo,D_drug),
 
 
 ```{r echo=T}
-
 ggplot(D_datamelt) +
-  geom_histogram(mapping=aes(x=value,
-                             fill=treatment),
-                 bins=50)
+  geom_histogram(mapping=aes(x=value, fill=treatment), bins=50)
 ```
 
 ## Difference of means is also normally distributed
@@ -340,14 +366,14 @@ Now let's start to consider that Placebo and Drug are two separate populations. 
 Below I will sample 10 values form both populations and simply take their difference.
 
 ```{r ehco=T}
-
 Diff_sample = numeric()
 set.seed(123)
 
 n=10
 for (i in 1:10000) {
-  Diff_sample[i] = mean(Placebo[sample(1:length(Placebo),n,replace=T)])-
-    mean(Drug[sample(1:length(Drug), n, replace = T)])
+  placebo_mean = mean(Placebo[sample(1:length(Placebo),n,replace=T)])
+  drug_mean = mean(Drug[sample(1:length(Drug), n, replace = T)])
+  Diff_sample[i] = placebo_mean - drug_mean
 }
 ```
 
@@ -356,10 +382,8 @@ for (i in 1:10000) {
 ```{r echo=T}
 
 ggplot() +
-  geom_histogram(mapping=aes(x=Diff_sample),
-                 fill="blue", bins=50) +
-  geom_vline(mapping=aes(xintercept=0),
-             col="red")
+  geom_histogram(mapping=aes(x=Diff_sample), fill="blue", bins=50) +
+  geom_vline(mapping=aes(xintercept=0), col="red")
 
 ```
 
@@ -374,9 +398,9 @@ set.seed(123)
 datameltshuffle = datamelt
 n=10
 for (i in 1:10000) {
-  datameltshuffle$value = sample(datamelt$value,
-                                   nrow(datamelt),replace=F)
+  datameltshuffle$value = sample(datamelt$value, nrow(datamelt),replace=F)
 
+  # tapply function applies a function to a vector grouped by factor
   Diff_shuffle_sample[i] = diff(tapply(datameltshuffle$value,
                                     datameltshuffle$treatment,
                                        mean))
@@ -387,19 +411,16 @@ for (i in 1:10000) {
 
 ```{r echo=T}
 ggplot() +
-  geom_histogram(mapping=aes(x=Diff_suffle_sample),
+  geom_histogram(mapping=aes(x=Diff_shuffle_sample),
                  fill="blue", bins=50) +
   geom_vline(mapping=aes(xintercept=mean(Placebo)-mean(Drug)),
              col="red")
-
 ```
 
 ## The results
 
 ```{r echo=T}
-
 sum(Diff_shuffle_sample <= (mean(Placebo)-mean(Drug)))/10000
-
 ```
 
 ```{r echo=T}

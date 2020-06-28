@@ -39,6 +39,10 @@ ui <- fluidPage(
 )
 
 # Define server logic required to draw a histogram
+# all values to be used from input form is saved in a list called input
+# it can be accessed using input$####
+# similarly what gets saved in distplot will be accessible to output functions.
+
 server <- function(input, output) {
 
     output$distPlot <- renderPlot({
