@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 
@@ -42,6 +43,8 @@ Now let's run this code 10,000 times.
 
 ```{r}
 failures = numeric()
+set.seed(123)
+
 for (i in 1:10000) {
   failures[i]=select_Ace(carddeck, num_draws = 100)
 }
@@ -50,7 +53,7 @@ for (i in 1:10000) {
 
 Now plot the histogram.
 
-Check out ![R for Data Science](https://r4ds.had.co.nz) for some great tutorials on ggplot.
+Check out [R for Data Science](https://r4ds.had.co.nz) for some great tutorials on ggplot.
 
 ```{r}
 library(ggplot2)
@@ -94,6 +97,8 @@ Now let's run this code 10,000 times.
 
 ```{r}
 successes = numeric()
+set.seed(123)
+
 for (i in 1:10000) {
   successes[i]=poker_cards(carddeck, num_draws = 5)
 }
@@ -150,8 +155,12 @@ select_Blue = function(marbles, num_draws, selection) {
     blue_selected = length(which(marbles_selected==selection))
       return(blue_selected)
 }
+```
 
+```{r}
 NumBlues = numeric()
+set.seed(123)
+
 for (i in 1:10000) {
   NumBlues[i]=select_Blue(marbles, num_draws = 300, "B")
 }
@@ -164,7 +173,10 @@ Alternatively we can simply do this in a loop.
 
 ```{r}
 marble_selected=numeric()
+set.seed(123)
+
 for ( i in 1:10000) {
+  
   marble_selected[i] = sum(sample(marbles, 300, replace=F)=="B")
   
 }
@@ -226,7 +238,10 @@ Let's simulate randomly obtaining 10 measurements from the sample. If we do this
 ```{r}
 D_placebo=numeric()
 D_drug= numeric()
+set.seed(123)
+
 n=10
+
 for (i in 1:10000) {
   D_placebo[i] = mean(Placebo[sample(1:length(Placebo), n, replace=T)])
   D_drug[i] = mean(Drug[sample(1:length(Drug), n, replace=T)])
@@ -235,10 +250,10 @@ for (i in 1:10000) {
 #hist(D_sample)
 ```
 ```{r}
-datamelt = melt(cbind(D_placebo,D_drug), 
+D_datamelt = melt(cbind(D_placebo,D_drug), 
                 varnames = c("id","treatment"))
 
-ggplot(datamelt) + geom_histogram(mapping=aes(x=value, fill=treatment))
+ggplot(D_datamelt) + geom_histogram(mapping=aes(x=value, fill=treatment))
          
 ```
 
@@ -249,6 +264,8 @@ $$SE_{\bar{x}} = {\frac{\sigma}{\sqrt{n}}}$$
 ```{r}
 D_placebo=numeric()
 D_drug= numeric()
+set.seed(123)
+
 n=5
 for (i in 1:10000) {
   D_placebo[i] = mean(Placebo[sample(1:length(Placebo), n, replace=T)])
@@ -258,10 +275,10 @@ for (i in 1:10000) {
 
 ```{r}
 #hist(D_sample)
-datamelt = melt(cbind(D_placebo,D_drug), 
+D_datamelt = melt(cbind(D_placebo,D_drug), 
                 varnames = c("id","treatment"))
 
-ggplot(datamelt) +
+ggplot(D_datamelt) +
   geom_histogram(mapping=aes(x=value,
                              fill=treatment))
 ```
@@ -280,6 +297,8 @@ Below I will sample 5 values form both populations and simply take their differe
 ```{r}
 
 Diff_sample = numeric()
+set.seed(123)
+
 n=10
 for (i in 1:10000) {
   Diff_sample[i] = mean(Placebo[sample(1:length(Placebo),n,replace=T)])-
@@ -306,6 +325,8 @@ If the samples are truly random, then it shouldn't matter which data values are 
 
 
 Diff_suffle_sample = numeric()
+set.seed(123)
+
 datameltshuffle = datamelt
 n=10
 for (i in 1:10000) {
@@ -332,6 +353,7 @@ ggplot() +
              col="red")
 
 ```
+
 ```{r}
 
 sum(Diff_suffle_sample <= (mean(Placebo)-mean(Drug)))/10000

@@ -19,10 +19,16 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
             sliderInput("n",
-                        "Number of bins:",
+                        "Number of samples to take:",
                         min = 1,
                         max = 10,
-                        value = 5)
+                        value = 5),
+            sliderInput("sim",
+                        "Number of simulations",
+                        min = 100,
+                        max = 10000,
+                        value = 1000,
+                        step = 100)
         ),
 
         # Show a plot of the generated distribution
@@ -36,10 +42,14 @@ ui <- fluidPage(
 server <- function(input, output) {
 
     output$distPlot <- renderPlot({
+        
+        Placebo = c(54,51,58,44,55,52,42,47,58,46)
+        Drug = c(54,73,53,70,73,68,52,65,65,60)
+        
         D_placebo=numeric()
         D_drug= numeric()
-        
-        for (i in 1:10000) {
+        set.seed(123)
+        for (i in 1:input$sim) {
             D_placebo[i] = mean(Placebo[sample(1:length(Placebo), 
                                                input$n, replace=T)])
             D_drug[i] = mean(Drug[sample(1:length(Drug), 
@@ -50,7 +60,8 @@ server <- function(input, output) {
                         varnames = c("id","treatment"))
         
         ggplot(datamelt) + geom_histogram(mapping=aes(x=value, 
-                                                      fill=treatment))
+                                                      fill=treatment),
+                                          bins=50)
         
     })
 }
